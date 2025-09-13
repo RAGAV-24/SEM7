@@ -134,5 +134,65 @@ def chat():
         print("Groq error:", e)
         return jsonify({ "reply": "Sorry, there was a problem connecting to the AI model." }), 500
 
+# ----------------- Results API -----------------
+@app.route('/results', methods=['POST'])
+def results_api():
+    """
+    Expects JSON payload like:
+    {
+        "predicted_class": 2,
+        "predicted_label": "Stone",
+        "raw_prediction": [...],
+        "gradcam": "base64string"
+    }
+    Returns suggestions, symptoms, remedies, and lifestyle advice using Groq
+    """
+    data = request.get_json()
+    predicted_label = data.get("predicted_label")
+
+    if not predicted_label:
+        return jsonify({"error": "predicted_label is required"}), 400
+
+    # Craft prompt for Groq AI
+    prompt = f"""
+    I have a patient diagnosed with kidney disease: {predicted_label}.
+    Please provide:
+    1. Main symptoms of this disease
+    2. Recommended remedies or treatments
+    3. Things to avoid if someone has this disease
+    Answer in a structured JSON format like:
+    {{
+        "symptoms": [...],
+        "remedies": [...],
+        "avoid": [...]
+    }}
+    """
+
+    try:
+        response = openai.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "You are a professional medical assistant."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        reply_text = response.choices[0].message.content.strip()
+
+        # Try to parse the reply as JSON
+        try:
+            suggestions = eval(reply_text)  # Use eval cautiously, could also use json.loads after cleaning
+        except:
+            suggestions = {"message": reply_text}
+
+        return jsonify({
+            "predicted_label": predicted_label,
+            "suggestions": suggestions
+        })
+
+    except Exception as e:
+        print("Groq error:", e)
+        return jsonify({"error": "Failed to get suggestions from Groq"}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)

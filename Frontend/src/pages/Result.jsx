@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -7,13 +7,73 @@ export default function Result() {
   const navigate = useNavigate();
   const { image, result, gradcam } = location.state || {};
 
-  // ✅ Map predicted class index to label
-  console.log(gradcam);
-  const classLabels = ["Normal", "Cyst", "Stone", "Tumor"]; // 4 classes
+  const [suggestions, setSuggestions] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Map predicted class index to label
+  const classLabels = ["Normal", "Cyst", "Stone", "Tumor"];
   const predictedLabel =
     result && typeof result.predicted_class === "number"
       ? classLabels[result.predicted_class] || "Unknown"
       : "N/A";
+
+  // API call to send result to backend and get suggestions
+  useEffect(() => {
+  if (result) {
+    const fetchSuggestions = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch("http://localhost:5000/results", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            predicted_class: result.predicted_class,
+            predicted_label: predictedLabel,
+            raw_prediction: result.prediction,
+            gradcam: gradcam,
+            timestamp: new Date(),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch suggestions from backend");
+        }
+
+        const data = await response.json();
+
+        let parsedSuggestions = {};
+
+        if (data.suggestions?.message) {
+          // Extract the JSON inside the ```json ... ``` block
+          const match = data.suggestions.message.match(/```json([\s\S]*?)```/);
+          if (match && match[1]) {
+            try {
+              parsedSuggestions = JSON.parse(match[1]);
+            } catch (err) {
+              console.error("Failed to parse suggestions JSON:", err);
+              parsedSuggestions = { message: data.suggestions.message };
+            }
+          } else {
+            parsedSuggestions = { message: data.suggestions.message };
+          }
+        }
+
+        setSuggestions(parsedSuggestions);
+        console.log("Parsed Suggestions:", parsedSuggestions);
+
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSuggestions();
+  }
+}, [result, predictedLabel, gradcam]);
+
 
   if (!image || !result) {
     return (
@@ -71,29 +131,74 @@ export default function Result() {
         </motion.div>
       </div>
 
-      {/* Grad-CAM Section */}
-      {gradcam && (
-        <div className="mt-16 w-full flex flex-col items-center">
-          <h2 className="text-2xl font-bold text-cyan-400 mb-8">
-            Explainability (Grad-CAM)
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center max-w-6xl w-full">
-            {/* Left - Original */}
-            <motion.img
-              src={image}
-              alt="Uploaded"
-              className="w-full h-96 object-cover rounded-2xl border border-gray-700 shadow-lg"
-            />
+      {/* Suggestions Container */}
+      {/* Suggestions Container */}
+<div className="mt-12 max-w-5xl w-full p-6 bg-gray-800 rounded-2xl shadow-lg">
+  <h2 className="text-2xl font-bold text-cyan-400 mb-4">Suggestions</h2>
+  {loading ? (
+    <p className="text-gray-300">Loading suggestions...</p>
+  ) : suggestions ? (
+    <div className="text-gray-200 space-y-6">
 
-            {/* Right - Grad-CAM */}
-            <motion.img
-              src={gradcam}
-              alt="GradCAM Heatmap"
-              className="w-full h-96 object-cover rounded-2xl border border-gray-700 shadow-lg"
-            />
-          </div>
+      {/* Symptoms */}
+      {suggestions.symptoms && suggestions.symptoms.length > 0 && (
+        <div>
+          <h3 className="font-semibold text-cyan-300 mb-2">Symptoms:</h3>
+          <ul className="list-disc list-inside space-y-1">
+            {suggestions.symptoms.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
         </div>
       )}
+
+      {/* Remedies / Treatments */}
+      {suggestions.remedies && suggestions.remedies.length > 0 && (
+  <div>
+    <h3 className="font-semibold text-cyan-300 mb-2">Remedies / Treatments:</h3>
+    <ul className="list-disc list-inside space-y-2">
+      {suggestions.remedies.map((r, i) => (
+        <li key={i}>
+          {typeof r === "string" ? r : (
+            <>
+              <span className="font-semibold">{r.type}:</span> {r.description}
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+      {/* Things to Avoid */}
+      {suggestions.avoid && suggestions.avoid.length > 0 && (
+  <div>
+    <h3 className="font-semibold text-cyan-300 mb-2">Things to Avoid:</h3>
+    <ul className="list-disc list-inside space-y-2">
+      {suggestions.avoid.map((a, i) => (
+        <li key={i}>
+          {typeof a === "string" ? a : (
+            <>
+              <span className="font-semibold">{a.category}:</span> {a.description}
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
+      {/* Note */}
+      <div className="mt-4 text-sm text-gray-400">
+        <p>
+          <strong>Note:</strong> This information should not be considered as a substitute for medical advice. Patients should consult their healthcare provider for personalized guidance and treatment. Kidney tumor symptoms and remedies may vary depending on individual cases and medical history.
+        </p>
+      </div>
+    </div>
+  ) : (
+    <p className="text-gray-400">No suggestions available.</p>
+  )}
+</div>
 
       {/* Back Button */}
       <motion.button
