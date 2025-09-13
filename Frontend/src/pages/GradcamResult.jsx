@@ -1,18 +1,14 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
+import { getPredictedLabel } from "../services/GradcamResult"; // import helper
 
 export default function GradcamResult() {
   const location = useLocation();
   const navigate = useNavigate();
   const { image, result, gradcam } = location.state || {};
 
-  // ✅ Map predicted class index to label (for custom model)
-  const classLabels = ["Normal", "Cyst", "Stone", "Tumor"];
-  const predictedLabel =
-    result && typeof result.predicted_class === "number"
-      ? classLabels[result.predicted_class] || "Unknown"
-      : "N/A";
+  const predictedLabel = getPredictedLabel(result);
 
   if (!image || !result) {
     return (
@@ -32,11 +28,11 @@ export default function GradcamResult() {
         className="text-4xl font-extrabold text-center mb-12 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent"
       >
         Classification & Grad-CAM Result
-      </motion.h1>
+      </motion.h1> */}
 
-      {/* Grid Layout: Image Left, Result Right */}
+      {/* Result Grid */}
       {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center max-w-5xl w-full">
-       \
+
         <motion.img
           src={image}
           alt="Uploaded"
@@ -46,7 +42,7 @@ export default function GradcamResult() {
           className="w-full h-96 object-cover rounded-2xl border border-gray-700 shadow-lg"
         />
 
-
+       
         <motion.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -57,22 +53,19 @@ export default function GradcamResult() {
             Predicted Class
           </h2>
           <p className="text-xl font-semibold text-white">{predictedLabel}</p>
-
           <p className="mt-6 text-gray-300">
             <span className="font-semibold text-cyan-300">Class Index:</span>{" "}
             {result.predicted_class}
           </p>
-
-
         </motion.div>
-      </div> */}
+      {/*</div> */}
 
       {/* Grad-CAM Section */}
       {gradcam && (
         <div className="mt-16 w-full flex flex-col items-center">
-          <h2 className="text-2xl font-bold text-cyan-400 mb-8">
+          <h1 className="text-2xl font-bold text-cyan-400 mb-8">
             Explainability (Grad-CAM)
-          </h2>
+          </h1>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center max-w-6xl w-full">
             {/* Left - Original */}
             <motion.img
@@ -83,7 +76,7 @@ export default function GradcamResult() {
 
             {/* Right - Grad-CAM Heatmap */}
             <motion.img
-              src={`data:image/png;base64,${gradcam}`} // ✅ convert base64 to image
+              src={`data:image/png;base64,${gradcam}`}
               alt="GradCAM Heatmap"
               className="w-full h-96 object-cover rounded-2xl border border-gray-700 shadow-lg"
             />
