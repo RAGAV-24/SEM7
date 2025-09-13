@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // ✅ for navigation
+import { useNavigate } from "react-router-dom";
+import { uploadFile } from "../services/Execution"; // import API
 
 export default function Execution() {
   const [file, setFile] = useState(null);
@@ -16,51 +17,27 @@ export default function Execution() {
     }
   };
 
-  // ✅ Common upload function
-  const uploadToAPI = async (endpoint) => {
+  const handleUpload = async (endpoint) => {
     if (!file) {
       alert("Please upload an image first.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const response = await fetch(`http://localhost:5000/${endpoint}`, {
-        method: "POST",
-        body: formData,
-      });
+      const result = await uploadFile(file, endpoint);
 
-      if (!response.ok) {
-        throw new Error(`Failed to call ${endpoint} API`);
+      const state = {
+        image: URL.createObjectURL(file),
+        result: result,
+        gradcam: result.gradcam || null,
+      };
+
+      if (endpoint === "predict") {
+        navigate("/result", { state });
+      } else {
+        navigate("/gradresult", { state });
       }
-
-      const result = await response.json();
-      console.log(`${endpoint} API Response:`, result);
-
-      // ✅ Pass both prediction and gradcam (if available)
-    if(endpoint=="predict")
-    {
-      navigate("/result", {
-        state: {
-          image: URL.createObjectURL(file),
-          result: result,
-          gradcam: result.gradcam || null, // only exists if endpoint is gradcam
-        },
-      });
-    }
-    else{
-        navigate("/gradresult", {
-        state: {
-          image: URL.createObjectURL(file),
-          result: result,
-          gradcam: result.gradcam || null, // only exists if endpoint is gradcam
-        },
-      });
-    }
     } catch (error) {
-      console.error("Error uploading file:", error);
       alert("Upload failed. Please try again.");
     }
   };
@@ -115,7 +92,7 @@ export default function Execution() {
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => uploadToAPI("predict")}
+          onClick={() => handleUpload("predict")}
           className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-lg font-semibold rounded-2xl shadow-lg transition-all duration-300"
         >
           Classify Image
@@ -124,10 +101,10 @@ export default function Execution() {
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => uploadToAPI("gradcam")}
+          onClick={() => handleUpload("gradcam")}
           className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-700 hover:to-pink-600 text-lg font-semibold rounded-2xl shadow-lg transition-all duration-300"
         >
-        Grad-CAM
+          Grad-CAM
         </motion.button>
       </div>
     </div>

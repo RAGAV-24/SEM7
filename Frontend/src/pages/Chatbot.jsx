@@ -1,7 +1,7 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { TbMessageChatbot, TbLoader, TbPlayerStop } from "react-icons/tb";
 import { FaUserCircle } from "react-icons/fa";
+import { sendMessageToBot } from "../services/Chatbot"; // your API function
 
 function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,14 +12,14 @@ function Chatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentBotReply, setCurrentBotReply] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [typingTimeout, setTypingTimeout] = useState(null);
+  const typingTimeoutRef = useRef(null);
 
-  // Typing effect logic
+  // Typing effect
   useEffect(() => {
     if (!currentBotReply) return;
 
     const fullText = currentBotReply;
-    const typingSpeed = 15; // faster speed
+    const typingSpeed = 15;
     let index = 0;
     let isStopped = false;
 
@@ -37,10 +37,8 @@ function Chatbot() {
           return updated;
         });
         index++;
-        const timeoutId = setTimeout(typeCharacter, typingSpeed);
-        setTypingTimeout(timeoutId);
+        typingTimeoutRef.current = setTimeout(typeCharacter, typingSpeed);
       } else {
-        // Typing done
         setMessages((prev) => {
           const updated = [...prev];
           const lastMsg = updated[updated.length - 1];
@@ -59,11 +57,11 @@ function Chatbot() {
     };
 
     setIsTyping(true);
-    typeCharacter(); // Start typing
+    typeCharacter();
 
     return () => {
       isStopped = true;
-      if (typingTimeout) clearTimeout(typingTimeout);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     };
   }, [currentBotReply]);
 
@@ -71,56 +69,30 @@ function Chatbot() {
     const userMessage = input.trim();
     if (!userMessage) return;
 
-    const userMsg = { sender: "user", text: userMessage };
-    setMessages((prev) => [...prev, userMsg]);
+    // Add user message
+    setMessages((prev) => [...prev, { sender: "user", text: userMessage }]);
     setInput("");
     setIsLoading(true);
 
-    try {
-      const response = await fetch(`http://127.0.0.1:5000/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: userMessage }),
-      });
+    // Add bot placeholder immediately
+    setMessages((prev) => [...prev, { sender: "bot", text: "", isTyping: true }]);
 
-      const data = await response.json();
-      const botReply = data.reply || "Sorry, I couldn't understand that.";
-
-      // Add bot message with placeholder for typing
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "", isTyping: true },
-      ]);
-
-      setCurrentBotReply(botReply);
-    } catch (error) {
-      console.error("Error fetching bot reply:", error);
-      setMessages((prev) => [
-        ...prev,
-        { sender: "bot", text: "Connection error. Please try again." },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+    // API call
+    const botReply = await sendMessageToBot(userMessage);
+    setCurrentBotReply(botReply);
+    setIsLoading(false);
   };
 
   const handleStopTyping = () => {
-    // Just stop the typing — don't clear the current text
     setIsTyping(false);
-    setCurrentBotReply(""); // Stop the effect loop
+    setCurrentBotReply("");
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
-    // Update the last message to keep what was typed so far
     setMessages((prev) => {
       const updated = [...prev];
       const lastMsg = updated[updated.length - 1];
       if (lastMsg.sender === "bot" && lastMsg.isTyping) {
-        updated[updated.length - 1] = {
-          ...lastMsg,
-          isTyping: false,
-          // Keep whatever has been typed so far
-        };
+        updated[updated.length - 1] = { ...lastMsg, isTyping: false };
       }
       return updated;
     });
@@ -131,7 +103,6 @@ function Chatbot() {
       {/* Chat Window */}
       {isOpen && (
         <div className="absolute bottom-16 right-0 w-96 h-[32rem] bg-white rounded-xl shadow-2xl flex flex-col border border-gray-200 transition-all duration-300 ease-in-out">
-
           {/* Header */}
           <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-xl font-medium flex items-center space-x-2">
             <TbMessageChatbot size={20} />
@@ -148,11 +119,7 @@ function Chatbot() {
                 }`}
               >
                 <div className={`mt-1 ${msg.sender === "user" ? "text-blue-600" : "text-gray-600"}`}>
-                  {msg.sender === "user" ? (
-                    <FaUserCircle size={28} />
-                  ) : (
-                    <TbMessageChatbot size={28} />
-                  )}
+                  {msg.sender === "user" ? <FaUserCircle size={28} /> : <TbMessageChatbot size={28} />}
                 </div>
                 <div
                   className={`max-w-[80%] px-4 py-3 rounded-lg shadow-sm ${
