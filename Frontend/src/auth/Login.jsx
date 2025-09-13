@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from "react";
 import Lottie from "lottie-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [animationData, setAnimationData] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
+  // Load Lottie animation
   useEffect(() => {
     fetch("/Auth/Login.json")
       .then((res) => res.json())
       .then((data) => setAnimationData(data));
   }, []);
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -24,9 +27,18 @@ const Login = () => {
       });
 
       const data = await res.json();
+
       if (res.ok) {
+        // Save JWT token to localStorage
         localStorage.setItem("token", data.token);
+
+        // Optional: save token expiry if backend sends it
+        if (data.expiresAt) {
+          localStorage.setItem("tokenExpiry", data.expiresAt);
+        }
+
         alert("✅ Login successful!");
+        navigate("/"); // redirect to homepage or dashboard
       } else {
         alert("❌ " + data.message);
       }
@@ -38,6 +50,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row items-center justify-center bg-gradient-to-br from-blue-900 via-gray-900 to-black text-white px-6 py-12">
+
       {/* Left: Lottie Animation */}
       <div className="hidden md:flex md:w-1/2 justify-center items-center">
         {animationData && (

@@ -10,6 +10,7 @@ import Result from "../pages/Result";
 import GradCam from "../pages/GradcamResult";
 import Chatbot from '../pages/Chatbot';
 import { Routes, Route } from "react-router-dom";
+import ProtectedRoute from "../context/ProtectedRoutes"; // import it
 
 const ThemeLayout = () => {
   return (
@@ -19,16 +20,46 @@ const ThemeLayout = () => {
         <Navbar />
       </div>
 
-      {/* Main content with padding for navbar & footer */}
+      {/* Main content */}
       <main className="flex-1 pt-20 pb-30">
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/model" element={<Model />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
-          <Route path="/execute" element={<Execute />} />
-          <Route path="/result" element={<Result />} />
-          <Route path="/gradresult" element={<GradCam />} />
+
+          {/* Protected routes */}
+          <Route
+            path="/model"
+            element={
+              <ProtectedRoute>
+                <Model />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/execute"
+            element={
+              <ProtectedRoute>
+                <Execute />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/result"
+            element={
+              <ProtectedRoute>
+                <Result />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gradresult"
+            element={
+              <ProtectedRoute>
+                <GradCam />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
 

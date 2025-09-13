@@ -1,23 +1,28 @@
 import React, { useEffect, useState } from "react";
 import Lottie from "lottie-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const SignUp = () => {
   const [animationData, setAnimationData] = useState(null);
-  const [name, setName] = useState(""); // optional if you want to store
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const navigate = useNavigate();
+
+  // Load Lottie animation
   useEffect(() => {
     fetch("/Auth/SignUp.json")
       .then((res) => res.json())
       .then((data) => setAnimationData(data));
   }, []);
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Check password match
     if (password !== confirmPassword) {
       alert("❌ Passwords do not match");
       return;
@@ -33,8 +38,16 @@ const SignUp = () => {
       const data = await res.json();
 
       if (res.ok) {
+        // Store JWT token
         localStorage.setItem("token", data.token);
+
+        // Optional: store token expiry if backend returns it
+        if (data.expiresAt) {
+          localStorage.setItem("tokenExpiry", data.expiresAt);
+        }
+
         alert("✅ Signup successful!");
+        navigate("/"); // redirect to homepage/dashboard
       } else {
         alert("❌ " + data.message);
       }
@@ -46,6 +59,7 @@ const SignUp = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row items-center justify-center bg-gradient-to-br from-blue-900 via-gray-900 to-black text-white px-6 py-12">
+
       {/* Left: Lottie Animation */}
       <div className="hidden md:flex md:w-1/2 justify-center items-center">
         {animationData && (
