@@ -123,7 +123,7 @@ def chat():
         response = openai.chat.completions.create(
             model="llama-3.1-8b-instant",  # Or use "llama3-70b-8192" if needed
             messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "system", "content": "You are a professional medical assistant. You should reply only for the kindey related content. If any other content is given as input you should answer i can only answer kidney related content "},
                 {"role": "user", "content": user_message}
             ]
         )
@@ -172,7 +172,7 @@ def results_api():
         response = openai.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "You are a professional medical assistant."},
+                {"role": "system", "content": "You are a professional medical assistant. You should reply only for the kindey related content. If any other content is given as input you should answer i can only answer kidney related content ."},
                 {"role": "user", "content": prompt}
             ]
         )

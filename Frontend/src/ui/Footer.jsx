@@ -14,11 +14,11 @@ const Footer = () => {
         </div>
 
         {/* Middle Section - Links */}
-        <div className="flex space-x-6 text-gray-300">
+        {/* <div className="flex space-x-6 text-gray-300">
           <a href="#" className="hover:text-amber-300">Home</a>
           <a href="#" className="hover:text-amber-300">Model</a>
           <a href="#" className="hover:text-amber-300">Login</a>
-        </div>
+        </div> */}
 
         {/* Right Section - Disclaimer */}
         <div className="text-xs text-gray-400 text-center md:text-right mt-4 md:mt-0 max-w-xs">
